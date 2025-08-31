@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+pytesseract
+Pillow
+python-multipart
+PyMuPDF
+easyocr
+numpy
+llama-index-core
+llama-index-readers-file
