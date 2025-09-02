@@ -77,7 +77,7 @@ def extract_pdf_text_native(pdf_path: Path) -> str:
         doc.close()
 
 
-def tesseract_from_pdf(pdf_path: Path, scale: float = 3.0) -> str:
+def tesseract_from_pdf(pdf_path: Path, scale: float = 1.0) -> str:
     """OCR a PDF by rasterizing each page at ~300 DPI (scale≈3)."""
     doc = fitz.open(pdf_path)
     try:
@@ -213,7 +213,7 @@ async def extract_text_from_doc(
         # 2) Tesseract OCR
         try:
             if is_pdf(file, saved):
-                t_text = tesseract_from_pdf(saved, scale=3.0)  # ~300 DPI
+                t_text = tesseract_from_pdf(saved, scale=1.0)  # ~100 DPI
             else:
                 t_text = tesseract_from_image(saved)
             if t_text and t_text.strip():
