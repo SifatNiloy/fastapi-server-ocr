@@ -112,16 +112,6 @@ def easyocr_from_pdf(pdf_path: Path, workdir: Path, scale: float = 2.0) -> str:
         doc.close()
 
 
-def tesseract_from_image(image_path: Path) -> str:
-    img = Image.open(image_path)
-    return pytesseract.image_to_string(img, lang="eng+ben")
-
-
-def easyocr_from_image(image_path: Path) -> str:
-    res = reader.readtext(str(image_path))
-    return " ".join(t for (_, t, _) in res)
-
-
 def try_llama_index(input_file: Path) -> Optional[str]:
     """Optional: use LlamaIndex if installed; otherwise skip quietly."""
     try:
@@ -156,7 +146,7 @@ async def extract_text_from_doc(
       EasyOCR (all pages)
 
     Only file size and page count are enforced.
-    No 'meaningfulness' checks.
+    No 'meaningfulness' checks here.
     """
     # Type gate
     if file.content_type not in ALLOWED_TYPES:
@@ -210,12 +200,9 @@ async def extract_text_from_doc(
                 "page_count": page_count,
             }
 
-        # 2) Tesseract OCR
+        # 2) Tesseract OCR (PDF only)
         try:
-            if is_pdf(file, saved):
-                t_text = tesseract_from_pdf(saved, scale=1.0)  # ~100 DPI
-            else:
-                t_text = tesseract_from_image(saved)
+            t_text = tesseract_from_pdf(saved, scale=1.0)  # ~100 DPI
             if t_text and t_text.strip():
                 return {
                     "filename": filename,
@@ -229,13 +216,9 @@ async def extract_text_from_doc(
         except Exception as e:
             print("Tesseract failed:", e)
 
-        # 3) EasyOCR OCR (all pages for PDFs)
+        # 3) EasyOCR OCR (PDF only)
         try:
-            if is_pdf(file, saved):
-                ez_text = easyocr_from_pdf(saved, td, scale=2.0)
-            else:
-                ez_text = easyocr_from_image(saved)
-
+            ez_text = easyocr_from_pdf(saved, td, scale=1.0)
             if ez_text and ez_text.strip():
                 return {
                     "filename": filename,
