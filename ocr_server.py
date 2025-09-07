@@ -78,7 +78,7 @@ def extract_pdf_text_native(pdf_path: Path) -> str:
 
 
 def tesseract_from_pdf(pdf_path: Path, scale: float = 1.0) -> str:
-    """OCR a PDF by rasterizing each page at ~300 DPI (scale≈3)."""
+    """OCR a PDF by rasterizing each page at ~100 DPI (scale≈1)."""
     doc = fitz.open(pdf_path)
     try:
         mat = fitz.Matrix(scale, scale)
@@ -93,7 +93,7 @@ def tesseract_from_pdf(pdf_path: Path, scale: float = 1.0) -> str:
         doc.close()
 
 
-def easyocr_from_pdf(pdf_path: Path, workdir: Path, scale: float = 2.0) -> str:
+def easyocr_from_pdf(pdf_path: Path, workdir: Path, scale: float = 1.0) -> str:
     """OCR a PDF with EasyOCR, processing all pages."""
     doc = fitz.open(pdf_path)
     try:
