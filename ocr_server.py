@@ -1,6 +1,7 @@
 # ocr_server.py
 import os
 import shutil
+import torch
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Optional
@@ -11,11 +12,14 @@ import fitz  # PyMuPDF
 import pytesseract
 import easyocr
 
+print(torch.cuda.is_available())   # True
+print(torch.cuda.get_device_name(0))
+
 app = FastAPI(title="OCR Server", version="1.1.0")
 
-# Initialize EasyOCR once (English + Bengali)
+# Initialize EasyOCR once (English + Bengali), force GPU if available
 EASYOCR_LANGS = ["en", "bn"]
-reader = easyocr.Reader(EASYOCR_LANGS)
+reader = easyocr.Reader(EASYOCR_LANGS, gpu=torch.cuda.is_available())
 
 # Accept common types (multer sometimes sends PDFs as octet-stream)
 ALLOWED_TYPES = {"application/pdf", "application/octet-stream"}
@@ -190,6 +194,7 @@ async def extract_text_from_doc(
                 print("PDF native extraction failed:", e)
 
         # 1) LlamaIndex (optional)
+        print("trying llamaIndex")
         li_text = try_llama_index(saved)
         if li_text and li_text.strip():
             return {
@@ -201,6 +206,7 @@ async def extract_text_from_doc(
             }
 
         # 2) Tesseract OCR (PDF only)
+        print("trying tessaract")
         try:
             t_text = tesseract_from_pdf(saved, scale=1.0)  # ~100 DPI
             if t_text and t_text.strip():
@@ -217,6 +223,7 @@ async def extract_text_from_doc(
             print("Tesseract failed:", e)
 
         # 3) EasyOCR OCR (PDF only)
+        print("trying easyocr")
         try:
             ez_text = easyocr_from_pdf(saved, td, scale=1.0)
             if ez_text and ez_text.strip():
