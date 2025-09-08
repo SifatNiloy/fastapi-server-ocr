@@ -18,7 +18,7 @@ EASYOCR_LANGS = ["en", "bn"]
 reader = easyocr.Reader(EASYOCR_LANGS)
 
 # Accept common types (multer sometimes sends PDFs as octet-stream)
-ALLOWED_TYPES = {"image/jpeg", "image/png", "application/pdf", "application/octet-stream"}
+ALLOWED_TYPES = {"application/pdf", "application/octet-stream"}
 
 # Absolute safety cap to protect this server (in MB). 0 => no cap.
 ABSOLUTE_MAX_FILE_MB = 100
