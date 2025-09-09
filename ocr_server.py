@@ -12,8 +12,8 @@ import fitz  # PyMuPDF
 import pytesseract
 import easyocr
 
-print(torch.cuda.is_available())   # True
-print(torch.cuda.get_device_name(0))
+print("cuda found:",torch.cuda.is_available())   # True
+# print(torch.cuda.get_device_name(0))
 
 app = FastAPI(title="OCR Server", version="1.1.0")
 

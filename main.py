@@ -1,7 +1,7 @@
-from fastapi import FastAPI
+# main.py
 
-app = FastAPI()
+import uvicorn
+from ocr_server import app
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=5001)
