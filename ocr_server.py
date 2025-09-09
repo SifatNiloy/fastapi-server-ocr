@@ -1,4 +1,3 @@
-# ocr_server.py
 import os
 import shutil
 import torch
@@ -12,12 +11,12 @@ import fitz  # PyMuPDF
 import pytesseract
 import easyocr
 
-print("cuda found:",torch.cuda.is_available())   # True
+# print("cuda found:",torch.cuda.is_available())   # True
 # print(torch.cuda.get_device_name(0))
 
 app = FastAPI(title="OCR Server", version="1.1.0")
 
-# Initialize EasyOCR once (English + Bengali), force GPU if available
+# Initialize EasyOCR once (English + Bengali), forcing GPU if available
 EASYOCR_LANGS = ["en", "bn"]
 reader = easyocr.Reader(EASYOCR_LANGS, gpu=torch.cuda.is_available())
 
@@ -81,6 +80,23 @@ def extract_pdf_text_native(pdf_path: Path) -> str:
         doc.close()
 
 
+def try_llama_index(input_file: Path) -> Optional[str]:
+    """use LlamaIndex, it might return the string, if not, then none (str | None)"""
+    try:
+        from llama_index.core import SimpleDirectoryReader
+    except Exception as e:
+        print("LlamaIndex not available:", e)
+        return None
+
+    try:
+        docs = SimpleDirectoryReader(input_files=[input_file]).load_data()
+        text = "\n\n".join(d.text for d in docs)
+        return text or ""
+    except Exception as e:
+        print("LlamaIndex extraction failed:", e)
+        return None
+
+
 def tesseract_from_pdf(pdf_path: Path, scale: float = 1.0) -> str:
     """OCR a PDF by rasterizing each page at ~100 DPI (scale≈1)."""
     doc = fitz.open(pdf_path)
@@ -116,23 +132,6 @@ def easyocr_from_pdf(pdf_path: Path, workdir: Path, scale: float = 1.0) -> str:
         doc.close()
 
 
-def try_llama_index(input_file: Path) -> Optional[str]:
-    """Optional: use LlamaIndex if installed; otherwise skip quietly."""
-    try:
-        from llama_index.core import SimpleDirectoryReader
-    except Exception as e:
-        print("LlamaIndex not available:", e)
-        return None
-
-    try:
-        docs = SimpleDirectoryReader(input_files=[input_file]).load_data()
-        text = "\n\n".join(d.text for d in docs)
-        return text or ""
-    except Exception as e:
-        print("LlamaIndex extraction failed:", e)
-        return None
-
-
 # ----------------------------
 # API
 # ----------------------------
@@ -146,7 +145,7 @@ async def extract_text_from_doc(
     Extract text with this order (first non-empty wins):
       PDF -> native text
       LlamaIndex (optional)
-      Tesseract (~300 DPI)
+      Tesseract (~100 DPI)
       EasyOCR (all pages)
 
     Only file size and page count are enforced.
@@ -176,7 +175,7 @@ async def extract_text_from_doc(
         if is_pdf(file, saved):
             page_count = check_page_limit(saved, max_pages)
 
-        # 0) Native text (PDF only)
+        # 1) Native text (PDF only)
         if is_pdf(file, saved):
             try:
                 native = extract_pdf_text_native(saved)
@@ -193,7 +192,7 @@ async def extract_text_from_doc(
             except Exception as e:
                 print("PDF native extraction failed:", e)
 
-        # 1) LlamaIndex (optional)
+        # 2) LlamaIndex
         print("trying llamaIndex")
         li_text = try_llama_index(saved)
         if li_text and li_text.strip():
@@ -205,7 +204,7 @@ async def extract_text_from_doc(
                 "page_count": page_count,
             }
 
-        # 2) Tesseract OCR (PDF only)
+        # 3) Tesseract OCR (PDF only)
         print("trying tessaract")
         try:
             t_text = tesseract_from_pdf(saved, scale=1.0)  # ~100 DPI
@@ -222,7 +221,7 @@ async def extract_text_from_doc(
         except Exception as e:
             print("Tesseract failed:", e)
 
-        # 3) EasyOCR OCR (PDF only)
+        # 4) EasyOCR OCR (PDF only)
         print("trying easyocr")
         try:
             ez_text = easyocr_from_pdf(saved, td, scale=1.0)
